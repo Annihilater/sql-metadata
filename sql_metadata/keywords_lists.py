@@ -6,12 +6,22 @@ checks for tables an columns
 # these keywords are followed by columns reference
 from enum import Enum
 
-KEYWORDS_BEFORE_COLUMNS = {"SELECT", "WHERE", "ORDERBY", "GROUPBY", "ON", "SET"}
+KEYWORDS_BEFORE_COLUMNS = {
+    "SELECT",
+    "WHERE",
+    "HAVING",
+    "ORDERBY",
+    "GROUPBY",
+    "ON",
+    "SET",
+    "USING",
+}
 
 # normalized list of table preceding keywords
 TABLE_ADJUSTMENT_KEYWORDS = {
     "FROM",
     "JOIN",
+    "CROSSJOIN",
     "INNERJOIN",
     "FULLJOIN",
     "FULLOUTERJOIN",
@@ -19,6 +29,7 @@ TABLE_ADJUSTMENT_KEYWORDS = {
     "RIGHTJOIN",
     "LEFTOUTERJOIN",
     "RIGHTOUTERJOIN",
+    "NATURALJOIN",
     "INTO",
     "UPDATE",
     "TABLE",
@@ -31,6 +42,7 @@ WITH_ENDING_KEYWORDS = {"UPDATE", "SELECT", "DELETE", "REPLACE", "INSERT"}
 SUBQUERY_PRECEDING_KEYWORDS = {
     "FROM",
     "JOIN",
+    "CROSSJOIN",
     "INNERJOIN",
     "FULLJOIN",
     "FULLOUTERJOIN",
@@ -38,6 +50,7 @@ SUBQUERY_PRECEDING_KEYWORDS = {
     "RIGHTJOIN",
     "LEFTOUTERJOIN",
     "RIGHTOUTERJOIN",
+    "NATURALJOIN",
 }
 
 # section of a query in which column can exists
@@ -45,8 +58,10 @@ SUBQUERY_PRECEDING_KEYWORDS = {
 COLUMNS_SECTIONS = {
     "SELECT": "select",
     "WHERE": "where",
+    "HAVING": "having",
     "ORDERBY": "order_by",
     "ON": "join",
+    "USING": "join",
     "INTO": "insert",
     "SET": "update",
     "GROUPBY": "group_by",
@@ -61,9 +76,12 @@ class QueryType(str, Enum):
     INSERT = "INSERT"
     REPLACE = "REPLACE"
     UPDATE = "UPDATE"
+    DELETE = "DELETE"
     SELECT = "SELECT"
     CREATE = "CREATE TABLE"
     ALTER = "ALTER TABLE"
+    DROP = "DROP TABLE"
+    TRUNCATE = "TRUNCATE TABLE"
 
 
 class TokenType(str, Enum):
@@ -86,9 +104,13 @@ SUPPORTED_QUERY_TYPES = {
     "REPLACE": QueryType.REPLACE,
     "UPDATE": QueryType.UPDATE,
     "SELECT": QueryType.SELECT,
+    "DELETE": QueryType.DELETE,
     "WITH": QueryType.SELECT,
     "CREATETABLE": QueryType.CREATE,
     "ALTERTABLE": QueryType.ALTER,
+    "DROPTABLE": QueryType.DROP,
+    "CREATEFUNCTION": QueryType.CREATE,
+    "TRUNCATETABLE": QueryType.TRUNCATE,
 }
 
 # all the keywords we care for - rest is ignored in assigning
@@ -104,4 +126,5 @@ RELEVANT_KEYWORDS = {
     "VALUES",
     "INDEX",
     "WITH",
+    "WINDOW",
 }

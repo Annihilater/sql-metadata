@@ -47,6 +47,26 @@ def test_joins():
         "ON (rd_title = 'foo' AND rd_namespace = '100' AND (page_id = rd_from))"
     ).columns
 
+    assert ["page_title"] == Parser(
+        "SELECT  page_title  FROM `redirect` CROSS JOIN `page` "
+    ).columns
+
+    assert ["page_title", "rd_title"] == Parser(
+        "SELECT  page_title  FROM `redirect` CROSS JOIN (select rd_title from `page`) as other"
+    ).columns
+
+
+def test_joins_using():
+    parser = Parser(
+        "SELECT  page_title  FROM `redirect` INNER JOIN `page` "
+        "USING (page_title, rd_title, rd_namespace)"
+    )
+    assert parser.columns == ["page_title", "rd_title", "rd_namespace"]
+    assert parser.columns_dict == {
+        "select": ["page_title"],
+        "join": ["page_title", "rd_title", "rd_namespace"],
+    }
+
 
 def test_getting_columns():
     assert Parser("SELECT * FROM `test_table`").columns == ["*"]
@@ -72,6 +92,15 @@ def test_getting_columns():
         "test",
     ]
     assert Parser("SELECT /* a comment */ bar FROM test_table").columns == ["bar"]
+    assert (
+        Parser(
+            """
+                WITH foo AS (SELECT test_table.* FROM test_table)
+                SELECT foo.bar FROM foo
+            """
+        ).columns
+        == ["test_table.*", "bar"]
+    )
 
 
 def test_columns_with_order_by():
@@ -243,6 +272,14 @@ def test_columns_with_comments():
         "where": ["cl_type", "cl_to"],
         "order_by": ["cl_sortkey"],
     }
+
+    parser = Parser(
+        """WITH aa AS --sdfsdfsdf 
+        (SELECT C1, C2 FROM T1) 
+        SELECT C1, C2 FROM aa"""
+    )
+    assert parser.columns == ["C1", "C2"]
+    assert parser.columns_dict == {"select": ["C1", "C2"]}
 
 
 def test_columns_with_keyword_aliases():
@@ -441,3 +478,53 @@ def test_aliases_switching_column_names():
     parsed = Parser(query)
     assert parsed.columns == ["a", "b"]
     assert parsed.columns_dict == {"select": ["a", "b"]}
+
+
+def test_having_columns():
+    query = """
+    SELECT Country
+    FROM Customers
+    GROUP BY Country
+    HAVING COUNT(CustomerID) > 5;
+    """
+    parsed = Parser(query)
+    assert parsed.columns == ["Country", "CustomerID"]
+    assert parsed.columns_dict == {
+        "select": ["Country"],
+        "group_by": ["Country"],
+        "having": ["CustomerID"],
+    }
+
+
+def test_nested_queries():
+    query = """
+    SELECT max(dt) FROM
+        (
+         SELECT max(dt) as dt FROM t      
+      UNION ALL
+          SELECT max(dt) as dt FROM t2
+        )
+    """
+    parser = Parser(query)
+    assert parser.columns == ["dt"]
+    assert parser.columns_dict == {"select": ["dt"]}
+
+    query = """
+    SELECT max(dt) FROM
+        (
+         SELECT max(dt) as dt FROM t      
+        )
+    """
+    parser = Parser(query)
+    assert parser.columns == ["dt"]
+    assert parser.columns_dict == {"select": ["dt"]}
+
+    query = """
+    SELECT max(dt) FROM
+        (
+         SELECT dt FROM t      
+        )
+    """
+    parser = Parser(query)
+    assert parser.columns == ["dt"]
+    assert parser.columns_dict == {"select": ["dt"]}

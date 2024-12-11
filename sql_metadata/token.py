@@ -1,10 +1,11 @@
 """
 Module contains internal SQLToken that creates linked list
 """
+
 from typing import Dict, List, Union
 
 import sqlparse.sql
-from sqlparse.tokens import Comment, Name, Number, Punctuation, Wildcard
+from sqlparse.tokens import Comment, Name, Number, Punctuation, Wildcard, Keyword
 
 from sql_metadata.keywords_lists import (
     KEYWORDS_BEFORE_COLUMNS,
@@ -41,6 +42,7 @@ class SQLToken:  # pylint: disable=R0902, R0904
             self.is_integer = tok.ttype is Number.Integer
             self.is_float = tok.ttype is Number.Float
             self.is_comment = tok.ttype is Comment or tok.ttype.parent == Comment
+            self.is_as_keyword = tok.ttype is Keyword and tok.normalized == "AS"
 
             self.is_left_parenthesis = str(tok) == "("
             self.is_right_parenthesis = str(tok) == ")"
@@ -62,6 +64,7 @@ class SQLToken:  # pylint: disable=R0902, R0904
         self.is_integer = False
         self.is_float = False
         self.is_comment = False
+        self.is_as_keyword = False
 
         self.is_left_parenthesis = False
         self.is_right_parenthesis = False
@@ -184,7 +187,7 @@ class SQLToken:  # pylint: disable=R0902, R0904
         """
         return (
             self.next_token.normalized in [",", "FROM"]
-            and self.previous_token.normalized not in [",", ".", "(", "SELECT"]
+            and self.previous_token.normalized not in ["*", ",", ".", "(", "SELECT"]
             and not self.previous_token.is_keyword
             and (
                 self.last_keyword_normalized == "SELECT"
@@ -357,6 +360,24 @@ class SQLToken:  # pylint: disable=R0902, R0904
             and not self.is_in_nested_function
             or self.is_in_with_columns
         )
+
+    @property
+    def next_token_not_comment(self):
+        """
+        Property returning next non-comment token
+        """
+        if self.next_token and self.next_token.is_comment:
+            return self.next_token.next_token_not_comment
+        return self.next_token
+
+    @property
+    def previous_token_not_comment(self):
+        """
+        Property returning previous non-comment token
+        """
+        if self.previous_token and self.previous_token.is_comment:
+            return self.previous_token.previous_token_not_comment
+        return self.previous_token
 
     def is_constraint_definition_inside_create_table_clause(
         self, query_type: str

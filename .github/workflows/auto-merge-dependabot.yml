@@ -13,7 +13,7 @@ jobs:
         steps:
             - name: Dependabot metadata
               id: metadata
-              uses: dependabot/fetch-metadata@v1.1.1
+              uses: dependabot/fetch-metadata@v2.2.0
               with:
                   github-token: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -25,7 +25,7 @@ jobs:
                   steps.metadata.outputs.update-type ==
                   'version-update:semver-patch' ||
                   steps.metadata.outputs.dependency-names ==
-                  'black' }}" 
+                  'black' }}"
 
               # https://cli.github.com/manual/gh_pr_merge
               run: gh pr merge --auto --squash "$PR_URL"
